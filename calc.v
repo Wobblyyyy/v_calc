@@ -996,3 +996,5 @@ enum Func {
 	deg
 	rad
 }
+
+// and they said math is for nerds...

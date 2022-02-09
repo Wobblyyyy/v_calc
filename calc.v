@@ -19,15 +19,20 @@ import readline
 import time
 
 const (
-	desc_name       = 'clicalc'
-	desc_version    = '1.0.0'
-	desc_cmd        = 'Simple command line parser and calculator.\n' +
-		'Supports simple equation parsing.\n' +
-		'Parantheses are not support - use brackets ("[" and "]") instead.\n' +
-		'Function calls (such as "sin", "sqrt", or "cbrt" use curly braces (ex: "sqrt{2}")\n' +
-		'Valid operators are as follows:\n' + '- addition:       +\n' + '- subtraction:    -\n' +
-		'- multiplication: *\n' + '- division:       /\n' + '- exponent:       ^\n' +
-		'- root:           #'
+	desc_name    = 'clicalc'
+	desc_version = '1.0.0'
+	desc_cmd     = 'clicalc
+Simple command line expression parser. Parses expressions recursively,
+allows for nested expressions. Has a default left-to-right order of operations,
+does not follow PEMDAS or whatever it is. Using the basic expression parsing
+functionality is relatively straightforward: there are quite a few commands
+available, all of which are relatively self-explanatory. clicalc also provides
+an interactive mode, which can be started by using the subcommand i.
+
+Interactive mode is the primary feature of clicalc and the reason it has any
+utility whatsoever. To learn more, enter interactive mode, then type in
+"help".
+'
 	desc_cmd_c      = 'Shorter alias for "calc".'
 	desc_cmd_calc   = 'Parse an expression and calculate its output.'
 	desc_cmd_vc     = 'Shorter alias for "vcalc".'
@@ -259,9 +264,9 @@ fn trim_whitespace(str string) string {
 	mut ret := ''
 	chars := str.split('')
 	for i in 0 .. chars.len {
-		char := chars[i]
-		if char != ' ' && char != '\n' && char != '\t' {
-			ret += char
+		c := chars[i]
+		if c != ' ' && c != '\n' && c != '\t' {
+			ret += c
 		}
 	}
 	return ret
@@ -337,11 +342,11 @@ fn syntax_check(chars []string, open string, close string) bool {
 	mut i := 0
 	mut last_idx := -1
 	for ; i < chars.len; i++ {
-		char := chars[i]
-		if char == open {
+		c := chars[i]
+		if c == open {
 			t_open += 1
 			last_idx = i
-		} else if char == close {
+		} else if c == close {
 			t_close += 1
 		}
 	}
@@ -502,8 +507,8 @@ fn parse_expr(oi string, debug bool, nest_lvl int) f64 {
 		mut open_order := []string{}
 		mut close_order := []string{}
 		for i in 0 .. chars.len {
-			char := chars[i]
-			match char {
+			c := chars[i]
+			match c {
 				'[' {
 					t_open_bracket++
 					open_order << '['
@@ -616,12 +621,12 @@ fn parse_expr(oi string, debug bool, nest_lvl int) f64 {
 		if i >= chars.len {
 			break
 		}
-		char := chars[i]
-		match char {
+		c := chars[i]
+		match c {
 			// if it's a number or a . just add it to unparsed_num and
 			// keep going
 			'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.' {
-				unparsed_num += char
+				unparsed_num += c
 			}
 			// replace both % and N with a negative sign - this is here
 			// because the first version of this app didn't have support for
@@ -720,7 +725,7 @@ fn parse_expr(oi string, debug bool, nest_lvl int) f64 {
 				// convert single characters into operators
 				// unrelated, but it's really throwing me off how char
 				// isn't a data type, but rather an identifier
-				match char {
+				match c {
 					'+' { operators << Operator.plus }
 					'-' { operators << Operator.minus }
 					'*' { operators << Operator.multiply }
@@ -882,7 +887,7 @@ fn parse_expr(oi string, debug bool, nest_lvl int) f64 {
 				}
 			}
 			else {
-				curr_op += char
+				curr_op += c
 			}
 		}
 	}
@@ -1140,7 +1145,10 @@ fn clear_fn(cmd Command, debug bool) {
 
 ### REGULAR EXPRESSION EVALUATION
 > if you just enter an expression without any other commands, the expression
-> will be evaluated and the result will be printed.
+> will be evaluated and the result will be printed. This is NOT RegEx, this
+> is just normal expressions. You can use either square braces or regular
+> braces ( () and [] ) to group expressions together so they will be completed
+> sequentially.
 
 ### SAVING AND READING
 > you can save and read values. ex:
@@ -1173,10 +1181,36 @@ fn clear_fn(cmd Command, debug bool) {
 >   exec [x+y] x y
 > and then you\'ll get some results. i don\'t exactly know much of a better
 > way to explain it, so i\'m hoping you get the point...
+> 
+> CLEARING MULTI-VARIABLE VALUES
+> as of now, the only way to clear multi-variable values is by typing in
+> "clear", as follows:
+>   clear
+> in the future, there will be a syntax like:
+>   clear <variable name>
+> example (clearing a variable named "testName"):
+>   clear testName
+>
+> READING MULTI_VARIABLE VALUES
+> to read all variables:
+>   vars
+>   vars <variable name>
+> say you wanted to read a variable named "hello":
+>   vars hello
+> if you want to see the value of variables named "test1" and "test2":
+>   vars test1 test2
+>
+> UNEVEN VARIABLE ARRAY LENGTHS
+> if variables have uneven lengths like so:
+>   x: [1, 2, 3]
+>   y: [1, 2]
+> ... it will use the last value of the array, as if the arrays were like this:
+>   x: [1, 2, 3]
+>   y: [1, 2, 2]
 
 ### SEEING STATISTICS 
 > you can type "stats" to see some random statistics about your current
-> interactive session. that\'s literally it.')
+> interactive session. that is literally it.')
 		} else if input.contains('stats') {
 			println('CURRENT INTERACTIVE MODE STATS:')
 			println('  commands executed:  $cmd_count')
@@ -1184,12 +1218,58 @@ fn clear_fn(cmd Command, debug bool) {
 			println('  files written:      $write_count')
 			println('  time spent parsing: $total_time')
 		} else if input.contains('clear') {
-			val_map = map[string][]string{}
-			val_map_keys = []string{}
+			tokens := input.split(' ')
+			if tokens.len == 1 {
+				// clear everything
+				println('> clearing all variables')
+				println('> $val_map_keys.str()')
+				// for t in 0 .. val_map_keys.len {
+				// val_key := val_map_keys[t]
+				// val_map.delete(val_key)
+				// val_map_keys.delete(t)
+				// println('> cleared "$val_key"')
+				// }
+				val_map = map[string][]string{}
+				val_map_keys = []string{}
+			} else {
+				for t in 1 .. tokens.len {
+					var_name := tokens[t]
+					if var_name in val_map {
+						val_map[var_name] = []string{}
+						println('> cleared "$var_name"')
+					} else {
+						println('> nothing to clear, "$var_name" was already empty')
+					}
+				}
+			}
+		} else if input.contains('vars') {
+			tokens := input.split(' ')
+			if tokens.len == 1 {
+				println('> displaying all variables and their values...')
+				for t in 0 .. val_map_keys.len {
+					val_key := val_map_keys[t]
+					println('> $val_key: ${val_map[val_key].str()}')
+				}
+			} else {
+				for t in 1 .. tokens.len {
+					var_name := tokens[t]
+					println('> $var_name: ${val_map[var_name].str()}')
+				}
+			}
 		} else if input.contains('add') {
 			tokens := input.split(' ')
 			if (tokens.len - 1) % 2 != 0 {
-				println('> ADD command requires an even number of arguments')
+				println('
+> ADD command requires an even number of arguments
+>
+> valid examples:
+> add x 10
+> add x 10 y 10 z 10 x 20 y 30 z 50
+>
+> invalid examples:
+> add 10
+> add x 10 x
+')
 				continue outer
 			}
 			for t := 1; t < tokens.len; t += 2 {
@@ -1206,10 +1286,23 @@ fn clear_fn(cmd Command, debug bool) {
 					println('       > add x 100')
 					continue outer
 				}
+				if var_name !in val_map_keys {
+					val_map_keys << var_name
+				}
 				if var_name !in val_map {
 					val_map[var_name] = []string{}
-					if var_name !in val_map_keys {
-						val_map_keys << var_name
+				}
+				if var_name !in val_map_keys {
+					// ew there has to be a better way to do this
+					mut stop := false
+					for a := 0; a < val_map_keys.len && !stop; a++ {
+						val_key := val_map_keys[a]
+						println('A: $a KEY: $val_key')
+						if var_name == val_key {
+							val_map_keys.delete(a)
+							println(' > deleted element $a (${val_map_keys[a]})')
+							stop = true
+						}
 					}
 				}
 				val_map[var_name] << var_value
@@ -1231,7 +1324,13 @@ fn clear_fn(cmd Command, debug bool) {
 		} else if input.contains('exec') {
 			tokens := input.split(' ')
 			if tokens.len < 3 {
-				println('ERROR: expected at least 3 arguments, got $tokens.len')
+				println('ERROR: expected at least 2 arguments, got $tokens.len
+> example valid execution commands:
+>   exec [x + y] x y
+>   exec [x * [y * sin{z}]] x y z
+> example invalid execution commands:
+>   exec [x + y]
+>   exec x y')
 				continue outer
 			}
 			// good luck trying to understand what this means. i don't really

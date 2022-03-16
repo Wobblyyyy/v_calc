@@ -1,16 +1,10 @@
-// here it is! the one! the only! clicalc or whatever it's called!
-// i don't care what you do with the code so MIT lic ig
-// yeah have fun
-// i swear i'm not this bad at coding
-// -- this comment is being written like a month after i wrote all of this
-// code. i'd just like to say that this is the first bit of code i've written
-// in v, and it's a utilitarian calculator that i use for my physics class
-// because i'm lazy and don't feel like solving equations manually. therefore,
-// i waive any responsiblity for any brain damage that you may be afflicted
-// with while reading this code. this is the most incredibly painfully shitty
-// code i've written in recent memory. i probably could have done a better
-// job when i was maybe 7 or 8 years old. you get the point. have fun!
-// good luck! or something...
+/*
+ * okay. so i'm writing this comment several months after i wrote the original
+ * code. this was my first project using v, and as you can see, it's genuinely
+ * terrible. that's all. i apologize if you try to understand whatever the
+ * hell all of this means...
+ */
+
 import cli { Command, Flag }
 import os
 import strconv
@@ -1346,6 +1340,9 @@ fn clear_fn(cmd Command, debug bool) {
 				var_name := var_names[i]
 				arrs << val_map[var_name]
 			}
+			// alright. update. this is about 3 or so months after i wrote
+			// this original piece of code, and i have absolutely no clue
+			// where to even start with what this means...
 			for i in 0 .. arrs[0].len {
 				mut temp_expr := unparsed_expr
 				for n in 0 .. var_names.len {

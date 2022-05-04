@@ -46,6 +46,7 @@ utility whatsoever. To learn more, enter interactive mode, then type in
 	desc_cmd_dcos   = 'Cosine in degrees mode.'
 	desc_cmd_rtan   = 'Tangent in radians mode.'
 	desc_cmd_dtan   = 'Tangent in degrees mode.'
+	desc_cmd_stddev = 'Find the standard deviation.'
 	math_pi         = 3.14159265359
 	math_rt_2       = 1.41421356237
 )
@@ -217,6 +218,13 @@ fn main() {
 		required_args: 0
 		execute: cmd_vclear_fn
 	}
+	cmd_stddev := Command{
+		name: 'stddev'
+		description: desc_cmd_stddev
+		usage: '<name>'
+		required_args: 0
+		execute: cmd_stddev_fn
+	}
 
 	cmd_c.add_flag(Flag{
 		flag: .string
@@ -245,6 +253,7 @@ fn main() {
 	cmd.add_command(cmd_dcos)
 	cmd.add_command(cmd_rtan)
 	cmd.add_command(cmd_dtan)
+	cmd.add_command(cmd_stddev)
 
 	cmd.add_command(cmd_clear)
 	cmd.add_command(cmd_clear_short)
@@ -812,6 +821,27 @@ fn parse_expr(oi string, debug bool, nest_lvl int) f64 {
 						}
 						expr += ']/$split.len'
 						val = parse_expr(expr, debug, nest_lvl + 1)
+					} else if curr_op == 'stddev' {
+						split := unparsed.split('and')
+						if debug {
+							debug_log('exprfunc', 'split avg operands into $split', nest_lvl)
+						}
+						mut expr := '['
+						for m := 0; m < split.len; m++ {
+							expr += '[${split[m]}]'
+							if m != split.len - 1 {
+								expr += '+'
+							}
+						}
+						expr += ']/$split.len'
+						avg := parse_expr(expr, debug, nest_lvl + 1)
+						mut dev_sum := 0.0
+						for m := 0; m < split.len; m++ {
+							num := split[m]
+							dev := parse_expr('$num-$avg', debug, nest_lvl + 1)
+							dev_sum += dev
+						}
+						val = dev_sum / split.len
 					} else if curr_op == 'read' {
 						from_file := file_read(unparsed)
 						val = parse_expr(from_file, debug, nest_lvl + 1)
@@ -851,7 +881,7 @@ fn parse_expr(oi string, debug bool, nest_lvl int) f64 {
 						'to_rad', 'deg_to_rad' {
 							val = perform_func(val, Func.rad, debug, nest_lvl)
 						}
-						'log', 'avg', 'read' {}
+						'log', 'avg', 'read', 'stddev' {}
 						'round' {
 							val = perform_func(val, Func.round, debug, nest_lvl)
 						}
@@ -1390,6 +1420,30 @@ fn cmd_clear_fn(cmd Command) ? {
 
 fn cmd_vclear_fn(cmd Command) ? {
 	clear_fn(cmd, true)
+}
+
+fn cmd_stddev_fn(cmd Command) ? {
+	unparsed_nums := cmd.args[0].split(',').filter(it.len > 0)
+	mut cmd_str := '['
+	for i := 0; i < unparsed_nums.len; i++ {
+		num := unparsed_nums[i]
+		if i != unparsed_nums.len - 1 {
+			cmd_str += '$num+'
+		} else {
+			cmd_str += num
+		}
+	}
+	cmd_str += ']/$unparsed_nums.len='
+	average := parse_expr(cmd_str, false, 0)
+	mut deviation_sum := 0.0
+	for i in 0 .. unparsed_nums.len {
+		unparsed_num := unparsed_nums[i]
+		mut unparsed_deviation := '${unparsed_num}-${average}'
+		dev := parse_expr(unparsed_deviation, false, 0)
+		deviation_sum += dev
+	}
+	val := deviation_sum / unparsed_nums.len
+	println('RESULT: $val')
 }
 
 fn calc_fn(cmd Command, debug bool) {

@@ -1040,7 +1040,7 @@ fn clear_fn(cmd Command, debug bool) {
 		}
 		if input.contains('exit') {
 			break
-		} else if input.contains('form') {
+		} else if input.starts_with('form') {
 			args := input.split(' ')
 			// this is nothing short of absolutely disgusting code
 			// i am genuinely very sorry for whoever is reading this
@@ -1058,15 +1058,17 @@ fn clear_fn(cmd Command, debug bool) {
 				should_err = true
 			}
 			if should_err {
-				println('ERROR: please make sure the formula (form) command has 4 or more arguments')
-				println('')
-				println('       example: saving a formula')
-				println('       - "form save cool_formula [3+3+x]"')
-				println('       - "form save cooler_formula [y+x*3]"')
-				println('')
-				println('       example: using a formula')
-				println('       - "form read cool_formula x:3"')
-				println('       - "form read cooler_formula x:3 y:4"')
+				println('
+ERROR: please make sure the formula (form) command has 4 or more arguments
+       for help with formulas, use "help formulas"
+
+       example: saving a formula
+       - "form save cool_formula [3+3+x]"
+       - "form save cooler_formula [y+x*3]"
+
+       example: using a formula
+       - "form read cool_formula x:3"
+       - "form read cooler_formula x:3 y:4"')
 				continue outer
 			} else if args[0] != 'form' {
 				println('ERROR: there was an error formatting the formula (form) command')
@@ -1160,20 +1162,23 @@ fn clear_fn(cmd Command, debug bool) {
 				write_count += 1
 			}
 		} else if input.contains('help') {
-			println('
+			if input.contains('interactive') {
+				println('
 ### USING INTERACTIVE MODE
 > interactive mode works just like the command line interface you used to
 > start this program - it\'s a REPL (read eval print loop). every time you
 > type in a command and press enter, the command you entered will be
-> evaluated, and you will get some kind of output.
-
+> evaluated, and you will get some kind of output.')
+			} else if input.contains('evaluation') {
+				println('
 ### REGULAR EXPRESSION EVALUATION
 > if you just enter an expression without any other commands, the expression
 > will be evaluated and the result will be printed. This is NOT RegEx, this
 > is just normal expressions. You can use either square braces or regular
 > braces ( () and [] ) to group expressions together so they will be completed
-> sequentially.
-
+> sequentially.')
+			} else if input.contains('saving') {
+				println('
 ### SAVING AND READING
 > you can save and read values. ex:
 >   [3+3+3]
@@ -1181,17 +1186,36 @@ fn clear_fn(cmd Command, debug bool) {
 > ... will save the result of 3+3+3 (9) to a file named "demo", which can
 > then be accessed like so:
 >   read{demo}+2
-> ... that would output 11 (9 + 2 = 11).
-
+> ... that would output 11 (9 + 2 = 11).')
+			} else if input.contains('formulas') {
+				println('
 ### USING FORMULAS
-> you can save and read a formula using the "form" command:
+> formulas allow you to save template expressions and replace certain parts of
+> that formula with custom numbers. the root command for formulas is "form".
+>
+> SAVING A FORMULA
+> to save a formula, use "form save", like so:
 >   form save formula1 [x*[y + 3]]
+>     (... creates a file named FORMULA_formula1, which stores the value
+>          "[x*[y + 3]]" so it can be used later)
+>   form save speed_of_sound [331+[0.6*T]]
+>     (... creates a file named FORMULA_speed_of_sound, which stores the
+>          value "[331+[0.6*T]]" so it can be used later)
+>
+> READING A FORMULA
+> to actually use a formula, you need to read it, which you can do using
+> "form read". when reading a formula, you will need to supply values for
+> that formula, like so:
 >   form read formula1 x:0 y:1 ([0*[1 + 3]] = 0)
 >   form read formula1 x:100 y:2 ([100*[2+3]] = 500)
-> if you do something like...
+>
+> READING A FORMULA WITHOUT ANY PARAMETERS
+> if you use "form read <formula name>" without any parameters, it will
+> just print out the value of that formula. example:
 >   form read formula1
-> you\'ll get an output saying "[x*[y + 3]]"
-
+>     (... outputs "[x*[y + 3]]")')
+			} else if input.contains('multi') {
+				println('
 ### USING MULTI-VARIABLE EQUATIONS
 > i honestly don\'t really remember what exactly my thought process was
 > while adding this feature, so it might not make a lot of sense. but
@@ -1230,11 +1254,42 @@ fn clear_fn(cmd Command, debug bool) {
 >   y: [1, 2]
 > ... it will use the last value of the array, as if the arrays were like this:
 >   x: [1, 2, 3]
->   y: [1, 2, 2]
-
+>   y: [1, 2, 2]')
+			} else if input.contains('last') {
+				println('
+### USING THE LAST OUTPUT AS A VALUE
+> you can use the calculator\'s last output as a parameter of your next
+> expression by using "last{}", like so:
+>   10*10
+>     (... outputs 100)
+>   100*5*last{}
+>     (... outputs 100*5*100, which is 50,000)
+>   last{}/10
+>     (... outputs 50000/10, which is 5,000)
+> 
+> if the last expression you parsed resulted in an error, "last{}" will
+> simply be the last output that was NOT an error.
+>
+> if you have not yet parsed any expressions, or if you have only inputted
+> expressions that resulted in an error, "last{}" will be 0.0. "last{}" will
+> only be something other than 0.0 if you have inputted a valid expression.')
+			} else if input.contains('stats') {
+				println('
 ### SEEING STATISTICS 
 > you can type "stats" to see some random statistics about your current
 > interactive session. that is literally it.')
+			} else {
+				println('
+### HELP
+> use one of the following subcommands to display more information.
+>   USING INTERACTIVE MODE:    "help interactive"
+>   EXPRESSION EVALUATION:     "help evaluation"
+>   SAVING AND READING:        "help saving"
+>   FORMULAS:                  "help formulas"
+>   MULTI-VARIABLE EQUATIONS:  "help multi"
+>   USING THE LAST OUTPUT:     "help last"
+>   STATISTICS:                "help stats"')
+			}
 		} else if input.contains('stats') {
 			println('CURRENT INTERACTIVE MODE STATS:')
 			println('  commands executed:  $cmd_count')
